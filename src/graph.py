@@ -100,12 +100,15 @@ class Graph(object):
         all_solutions = []
         nodes = []
 
+        # soft: inluding a vertex in the dominating set has a cost of 1
+
         for i in range(self.n_nodes):
             formula.add_clause([-n_vars[i]], 1)
 
+        # hard: at least one neighbor has to be in the independent set
         for i in range(self.n_nodes):
-            pass
-
+            formula.add_at_least_one(    ,wcnf.TOP_WEIGHT)
+            
         for n in range(n_solutions):
             opt, model = solver.solve(formula)
 
