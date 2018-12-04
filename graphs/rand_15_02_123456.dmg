@@ -1,0 +1,31 @@
+c
+c INDEPENDENT DOMINATION NUMBER 4
+c INDEPENDENCE NUMBER 6
+c CHROMATIC INDEX 3
+c
+p dmg 15 25
+e 1 4
+e 1 5
+e 1 6
+e 1 8
+e 1 10
+e 1 13
+e 1 14
+e 2 14
+e 3 4
+e 3 6
+e 3 15
+e 4 8
+e 4 13
+e 4 15
+e 5 7
+e 5 12
+e 6 9
+e 6 12
+e 6 14
+e 7 12
+e 7 13
+e 8 10
+e 9 13
+e 11 13
+e 12 13
