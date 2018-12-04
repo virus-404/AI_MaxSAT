@@ -94,6 +94,23 @@ class Graph(object):
             means all posible solutions.
         :return: A list of solutions, each solution is a list of nodes.
         """
+
+        formula = wcnf.WCNFFormula()
+        n_vars = [formula.new_var() for _ in range(self.n_nodes)]
+        all_solutions = []
+        nodes = []
+
+        for i in range(self.n_nodes):
+            formula.add_clause([-n_vars[i]], 1)
+
+        for i in range(self.n_nodes):
+            pass
+
+        for n in range(n_solutions):
+            opt, model = solver.solve(formula)
+
+        return all_solutions
+
         raise NotImplementedError("Your Code Here")
 
     def max_independent_set(self, solver, n_solutions):
