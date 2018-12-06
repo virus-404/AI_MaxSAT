@@ -110,31 +110,25 @@ class Graph(object):
         for edge in neighbours.values():
             formula.add_clause(edge, wcnf.TOP_WEIGHT)
 
-        # this is just an example, only one solution is computed
+        # shows all solutions
         all_solutions = []
-        opt, model = solver.solve(formula)
-        new_opt = opt
-        counter = 0
 
-        all_solutions = []
         opt, model = solver.solve(formula)
-        if opt >= 0:
+        curr_opt = opt
+        counter = 0
+        if  n_solutions < counter:
+            counter = n_solutions - 1
+
+        while counter < n_solutions and curr_opt == opt and opt >= 0:
+            counter +=1
+            if  n_solutions < 0:
+                counter = n_solutions - 1
             solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
             all_solutions.append(solution)
+            formula.add_clause(list(map(lambda x: -x, model)), wcnf.TOP_WEIGHT)
+            curr_opt , model = solver.solve(formula)
 
         return all_solutions
-
-
-        while opt == new_opt and n_solutions > counter:
-            solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
-            print('hello')
-            all_solutions.append(list(solution))
-            formula.add_clause(map(lambda x: -x if x>0 else x, solution), wcnf.TOP_WEIGHT)
-            new_opt, model = solver.solve(formula)
-            counter +=1
-
-        return all_solutions
-
         raise NotImplementedError("Your Code Here")
 
     def max_independent_set(self, solver, n_solutions):
@@ -153,16 +147,28 @@ class Graph(object):
             formula.add_clause([n_vars[i]], 1)  # clause weight = 1
 
         for n1, n2 in self.edges:
-            formula.add_at_most_one([n1, n2])
-        # this is just an example, only one solution is computed
+            v1, v2 = n_vars[n1-1], n_vars[n2-1]
+            formula.add_at_most_one([v1, v2])
+
+        # shows all solutions
         all_solutions = []
+
         opt, model = solver.solve(formula)
-        if opt >= 0:
+        curr_opt = opt
+        counter = 0
+        if  n_solutions < counter:
+            counter = n_solutions - 1
+
+        while counter < n_solutions and curr_opt == opt and opt >= 0:
+            counter +=1
+            if  n_solutions < 0:
+                counter = n_solutions - 1
             solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
             all_solutions.append(solution)
+            formula.add_clause(list(map(lambda x: -x, model)), wcnf.TOP_WEIGHT)
+            curr_opt , model = solver.solve(formula)
 
         return all_solutions
-
         raise NotImplementedError("Your Code Here")
 
     def min_graph_coloring(self, solver, n_solutions):
@@ -178,11 +184,19 @@ class Graph(object):
             using the same color.
         """
         formula = wcnf.WCNFFormula()
-        n_vars = [formula.new_var() for _ in range(self.n_nodes)] #Ctrl+shift+7
-
+        n_vars = [formula.new_var() for _ in range(self.n_nodes)]
+        neighbours = {} #neighbors
+        colors = {}
+        # soft: including a vertex in the cover has a cost of 1
         for i in range(self.n_nodes):
+            neighbours [i + 1] = []
+            color [i] = False
             formula.add_clause([-n_vars[i]], 1)  # clause weight = 1
 
+        # hard: all edges must be covered
+        for n1, n2 in self.edges:
+            neighbours [n1].append(n2)
+            neighbours [n2].append(n1)
 
 
         raise NotImplementedError("Your Code Here")
