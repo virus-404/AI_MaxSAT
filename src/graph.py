@@ -94,23 +94,44 @@ class Graph(object):
             means all posible solutions.
         :return: A list of solutions, each solution is a list of nodes.
         """
-
         formula = wcnf.WCNFFormula()
         n_vars = [formula.new_var() for _ in range(self.n_nodes)]
+        neighbours = {} #neighbors
+        # soft: including a vertex in the cover has a cost of 1
+        for i in range(self.n_nodes):
+            neighbours [i + 1] = [i+1]
+            formula.add_clause([-n_vars[i]], 1)  # clause weight = 1
+
+        # hard: all edges must be covered
+        for n1, n2 in self.edges:
+            neighbours [n1].append(n2)
+            neighbours [n2].append(n1)
+
+        for edge in neighbours.values():
+            formula.add_clause(edge, wcnf.TOP_WEIGHT)
+
+        # this is just an example, only one solution is computed
         all_solutions = []
-        nodes = []
+        opt, model = solver.solve(formula)
+        new_opt = opt
+        counter = 0
 
-        # soft: inluding a vertex in the dominating set has a cost of 1
+        all_solutions = []
+        opt, model = solver.solve(formula)
+        if opt >= 0:
+            solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
+            all_solutions.append(solution)
 
-        for i in range(self.n_nodes):
-            formula.add_clause([-n_vars[i]], 1)
+        return all_solutions
 
-        # hard: at least one neighbor has to be in the independent set
-        for i in range(self.n_nodes):
-            formula.add_at_least_one(    ,wcnf.TOP_WEIGHT)
-            
-        for n in range(n_solutions):
-            opt, model = solver.solve(formula)
+
+        while opt == new_opt and n_solutions > counter:
+            solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
+            print('hello')
+            all_solutions.append(list(solution))
+            formula.add_clause(map(lambda x: -x if x>0 else x, solution), wcnf.TOP_WEIGHT)
+            new_opt, model = solver.solve(formula)
+            counter +=1
 
         return all_solutions
 
@@ -124,6 +145,24 @@ class Graph(object):
             means all posible solutions.
         :return: A list of solutions, each solution is a list of nodes.
         """
+        formula = wcnf.WCNFFormula()
+        n_vars = [formula.new_var() for _ in range(self.n_nodes)]
+
+        # soft: including a vertex in the cover has a cost of 1
+        for i in range(self.n_nodes):
+            formula.add_clause([n_vars[i]], 1)  # clause weight = 1
+
+        for n1, n2 in self.edges:
+            formula.add_at_most_one([n1, n2])
+        # this is just an example, only one solution is computed
+        all_solutions = []
+        opt, model = solver.solve(formula)
+        if opt >= 0:
+            solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
+            all_solutions.append(solution)
+
+        return all_solutions
+
         raise NotImplementedError("Your Code Here")
 
     def min_graph_coloring(self, solver, n_solutions):
@@ -138,6 +177,14 @@ class Graph(object):
             nodes, where all the nodes in the same list are painted
             using the same color.
         """
+        formula = wcnf.WCNFFormula()
+        n_vars = [formula.new_var() for _ in range(self.n_nodes)] #Ctrl+shift+7
+
+        for i in range(self.n_nodes):
+            formula.add_clause([-n_vars[i]], 1)  # clause weight = 1
+
+
+
         raise NotImplementedError("Your Code Here")
 
 
@@ -155,10 +202,10 @@ def main(argv=None):
 
     mis_all = graph.max_independent_set(solver, args.n_solutions)
     assert all(len(mis_all[0]) == len(x) for x in mis_all)
-
+    """
     mgc_all = graph.min_graph_coloring(solver, args.n_solutions)
     assert all(len(mgc_all[0]) == len(x) for x in mgc_all)
-
+ """
     print("INDEPENDENT DOMINATION NUMBER", len(mds_all[0]))
     for mds in mds_all:
         print("MDS", " ".join(map(str, mds)))
@@ -166,13 +213,13 @@ def main(argv=None):
     print("INDEPENDENCE NUMBER", len(mis_all[0]))
     for mis in mis_all:
         print("MIS", " ".join(map(str, mis)))
-
+"""
     print("CHROMATIC INDEX", len(mgc_all[0]))
     for mgc in mgc_all:
         nodes = (" ".join(map(str, x)) for x in mgc)
         print("GC", " | ".join(nodes))
 
-
+"""
 # Utilities
 ###############################################################################
 
