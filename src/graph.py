@@ -211,7 +211,7 @@ class Graph(object):
         #soft(1): Every new color has a weight of the previous color plus one
         weight = 1
         for node in matrix[-1]:
-            formula.add_clause([-node],w)
+            formula.add_clause([-node], weight)
             weight += 1
 
         #hard(1): One color for each vertex
@@ -245,7 +245,6 @@ class Graph(object):
                             solution[row.index(interpretation[i])] = []
                         solution[row.index(interpretation[i])].append(matrix.index(row) + 1)
 
-            n_color = len(solution.keys())
             if list(solution.values()) not in all_solutions:
                 all_solutions.append(list(solution.values()))
             formula.add_clause(list(map(lambda x: -x, model)), wcnf.TOP_WEIGHT)
