@@ -1,0 +1,26 @@
+nodes = [] #node list
+    all_solutions = []
+    sets_of_vertex = []
+
+    for i in range(self.n_nodes):
+        nodes.append(i + 1)
+
+    while len(nodes) > 0:
+        formula = wcnf.WCNFFormula()
+        n_vars = [formula.new_var() for _ in range(self.n_nodes)]
+
+        for node in nodes: #soft
+            formula.add_clause([node],1)  # clause weight = 1
+
+        for vertex1, vertex2 in self.edges: #hard
+            if vertex1 in nodes and vertex2 in nodes:
+                formula.add_at_most_one([vertex1,vertex2])
+
+        opt, model = solver.solve(formula)
+        solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
+        sets_of_vertex.append(solution)
+        for node in solution:
+            nodes.remove(node)
+
+    all_solutions.append(sets_of_vertex)
+    return all_solutions

@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import sys
 import collections
 import itertools
-import sys
-
 import msat_runner
 import wcnf
 
@@ -73,9 +72,9 @@ class Graph(object):
             formula.add_clause([-n_vars[i]], 1)  # clause weight = 1
 
         # hard: all edges must be covered
-        for n1, n2 in self.edges:
-            v1, v2 = n_vars[n1-1], n_vars[n2-1]
-            formula.add_clause([v1, v2], wcnf.TOP_WEIGHT)
+        for node1, node2 in self.edges:
+            vertex1, vertex2 = n_vars[node1-1], n_vars[node2-1]
+            formula.add_clause([vertex1, vertex2], wcnf.TOP_WEIGHT)
 
         # this is just an example, only one solution is computed
         all_solutions = []
@@ -96,37 +95,37 @@ class Graph(object):
         """
         formula = wcnf.WCNFFormula()
         n_vars = [formula.new_var() for _ in range(self.n_nodes)]
-        neighbours = {} #neighbors
+        neighbors = {} #neighbors
+        all_solutions = []
+
         # soft: including a vertex in the cover has a cost of 1
         for i in range(self.n_nodes):
-            neighbours [i + 1] = [i+1]
+            neighbors[i + 1] = [i+1]
             formula.add_clause([-n_vars[i]], 1)  # clause weight = 1
 
         # hard: all edges must be covered
-        for n1, n2 in self.edges:
-            neighbours [n1].append(n2)
-            neighbours [n2].append(n1)
+        for node1, node2 in self.edges:
+            neighbors[node1].append(node2)
+            neighbors[node2].append(node1)
 
-        for edge in neighbours.values():
+        for edge in neighbors.values():
             formula.add_clause(edge, wcnf.TOP_WEIGHT)
 
-        # shows all solutions
-        all_solutions = []
-
+        # Shows all solutions possible
         opt, model = solver.solve(formula)
         curr_opt = opt
         counter = 0
-        if  n_solutions < counter:
-            counter = n_solutions - 1
 
-        while counter < n_solutions and curr_opt == opt and opt >= 0:
-            counter +=1
-            if  n_solutions < 0:
+        if opt <= 0: return all_solutions
+
+        while (n_solutions < 1 and curr_opt == opt) or (n_solutions > 0 and curr_opt == opt and counter < n_solutions):
+            counter += 1
+            if  n_solutions < 1:
                 counter = n_solutions - 1
-            solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
+            solution = [x for x in range(1, self.n_nodes+1) if model[x-1] > 0]
             all_solutions.append(solution)
             formula.add_clause(list(map(lambda x: -x, model)), wcnf.TOP_WEIGHT)
-            curr_opt , model = solver.solve(formula)
+            curr_opt, model = solver.solve(formula)
 
         return all_solutions
         raise NotImplementedError("Your Code Here")
@@ -141,32 +140,32 @@ class Graph(object):
         """
         formula = wcnf.WCNFFormula()
         n_vars = [formula.new_var() for _ in range(self.n_nodes)]
+        all_solutions = []
 
         # soft: including a vertex in the cover has a cost of 1
         for i in range(self.n_nodes):
             formula.add_clause([n_vars[i]], 1)  # clause weight = 1
 
-        for n1, n2 in self.edges:
-            v1, v2 = n_vars[n1-1], n_vars[n2-1]
-            formula.add_at_most_one([v1, v2])
+        #hard: Only one vertex maximum of each edge
+        for node1, node2 in self.edges:
+            vertex1, vertex2 = n_vars[node1-1], n_vars[node2-1]
+            formula.add_at_most_one([vertex1, vertex2])
 
-        # shows all solutions
-        all_solutions = []
-
+        # Shows all solutions possible
         opt, model = solver.solve(formula)
         curr_opt = opt
         counter = 0
-        if  n_solutions < counter:
-            counter = n_solutions - 1
 
-        while counter < n_solutions and curr_opt == opt and opt >= 0:
-            counter +=1
-            if  n_solutions < 0:
+        if opt <= 0: return all_solutions
+
+        while (n_solutions < 1 and curr_opt == opt) or (n_solutions > 0 and curr_opt == opt and counter < n_solutions):
+            counter += 1
+            if  n_solutions < 1:
                 counter = n_solutions - 1
-            solution = [x for x in range(1, self.n_nodes + 1) if model[x-1] > 0]
+            solution = [x for x in range(1, self.n_nodes+1) if model[x-1] > 0]
             all_solutions.append(solution)
             formula.add_clause(list(map(lambda x: -x, model)), wcnf.TOP_WEIGHT)
-            curr_opt , model = solver.solve(formula)
+            curr_opt, model = solver.solve(formula)
 
         return all_solutions
         raise NotImplementedError("Your Code Here")
@@ -183,24 +182,77 @@ class Graph(object):
             nodes, where all the nodes in the same list are painted
             using the same color.
         """
+
         formula = wcnf.WCNFFormula()
-        n_vars = [formula.new_var() for _ in range(self.n_nodes)]
-        neighbours = {} #neighbors
-        colors = {}
-        # soft: including a vertex in the cover has a cost of 1
-        for i in range(self.n_nodes):
-            neighbours [i + 1] = []
-            color [i] = False
-            formula.add_clause([-n_vars[i]], 1)  # clause weight = 1
+        all_solutions = []
+        solution = {}
+        matrix = []
+        neighbors = {}
 
-        # hard: all edges must be covered
-        for n1, n2 in self.edges:
-            neighbours [n1].append(n2)
-            neighbours [n2].append(n1)
+        for i in range(1, self.n_nodes + 1): #Starting the counter for each vertex
+            neighbors[i] = 0
+
+        for node1, node2 in self.edges: #counting
+            neighbors[node1] += 1
+            neighbors[node2] += 1
+
+        max_color = max(neighbors.values())
+        last_node = 1
+
+        #We generate a matrix of literals (rows = vertex, columns = colors)
+        for i in range(self.n_nodes + 1):
+            temporal = []
+            for j in range(max_color):
+                temporal.append(last_node + j)
+                formula.new_var()
+            matrix.append(temporal)
+            last_node = temporal[-1] + 1
+
+        #soft(1): Every new color has a weight of the previous color plus one
+        weight = 1
+        for node in matrix[-1]:
+            formula.add_clause([-node],w)
+            weight += 1
+
+        #hard(1): One color for each vertex
+        for row in matrix[:-1]:
+            formula.add_exactly_one(row)
+
+        #hard(2): No neighbors share the same color
+        for node1, node2 in self.edges:
+            for i in range(len(matrix[1])):
+                formula.add_at_most_one([matrix[node1-1][i], matrix[node2-1][i]])
+
+        #hard(3): A boolean is true if and only if the color is set
+        for row in matrix[:-1]:
+            for i in range(len(row)):
+                formula.add_clause([matrix[-1][i], -row[i]], wcnf.TOP_WEIGHT)
+
+        opt, model = solver.solve(formula)
+        curr_opt = opt
+        counter = 0
+
+        if opt <= 0: return []
+
+        while (n_solutions < 1 and curr_opt == opt) or (n_solutions > 0 and curr_opt == opt and counter < n_solutions):
+            counter += 1
+            solution.clear()
+            interpretation = [x for x in model if x > 0]
+            for i in range(len(interpretation)):
+                for row in matrix [:-1]:
+                    if interpretation[i] in row:
+                        if row.index(interpretation[i]) not in solution.keys():
+                            solution[row.index(interpretation[i])] = []
+                        solution[row.index(interpretation[i])].append(matrix.index(row) + 1)
+
+            n_color = len(solution.keys())
+            if list(solution.values()) not in all_solutions:
+                all_solutions.append(list(solution.values()))
+            formula.add_clause(list(map(lambda x: -x, model)), wcnf.TOP_WEIGHT)
+            curr_opt, model = solver.solve(formula)
 
 
-        raise NotImplementedError("Your Code Here")
-
+        return all_solutions
 
 # Program main
 ###############################################################################
@@ -216,10 +268,10 @@ def main(argv=None):
 
     mis_all = graph.max_independent_set(solver, args.n_solutions)
     assert all(len(mis_all[0]) == len(x) for x in mis_all)
-    """
+
     mgc_all = graph.min_graph_coloring(solver, args.n_solutions)
     assert all(len(mgc_all[0]) == len(x) for x in mgc_all)
- """
+
     print("INDEPENDENT DOMINATION NUMBER", len(mds_all[0]))
     for mds in mds_all:
         print("MDS", " ".join(map(str, mds)))
@@ -227,13 +279,12 @@ def main(argv=None):
     print("INDEPENDENCE NUMBER", len(mis_all[0]))
     for mis in mis_all:
         print("MIS", " ".join(map(str, mis)))
-"""
+
     print("CHROMATIC INDEX", len(mgc_all[0]))
     for mgc in mgc_all:
         nodes = (" ".join(map(str, x)) for x in mgc)
         print("GC", " | ".join(nodes))
 
-"""
 # Utilities
 ###############################################################################
 
