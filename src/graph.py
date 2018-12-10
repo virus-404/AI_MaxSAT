@@ -77,6 +77,7 @@ class Graph(object):
             formula.add_clause([vertex1, vertex2], wcnf.TOP_WEIGHT)
 
         # this is just an example, only one solution is computed
+        n_solutions = 1
         all_solutions = []
         opt, model = solver.solve(formula)
         if opt >= 0:
@@ -84,6 +85,8 @@ class Graph(object):
             all_solutions.append(solution)
 
         return all_solutions
+
+#python3 graph.py ./WPM1-2012 ../graphs/petersen.dmg
 
     def min_dominating_set(self, solver, n_solutions):
         """Computes the minimum dominating set of the graph.
@@ -109,7 +112,7 @@ class Graph(object):
             neighbors[node2].append(node1)
 
         for edge in neighbors.values():
-            formula.add_clause(edge, wcnf.TOP_WEIGHT)
+            formula.add_at_least_one(edge)
 
         # Shows all solutions possible
         opt, model = solver.solve(formula)
@@ -120,8 +123,6 @@ class Graph(object):
 
         while (n_solutions < 1 and curr_opt == opt) or (n_solutions > 0 and curr_opt == opt and counter < n_solutions):
             counter += 1
-            if  n_solutions < 1:
-                counter = n_solutions - 1
             solution = [x for x in range(1, self.n_nodes+1) if model[x-1] > 0]
             all_solutions.append(solution)
             formula.add_clause(list(map(lambda x: -x, model)), wcnf.TOP_WEIGHT)
@@ -160,8 +161,6 @@ class Graph(object):
 
         while (n_solutions < 1 and curr_opt == opt) or (n_solutions > 0 and curr_opt == opt and counter < n_solutions):
             counter += 1
-            if  n_solutions < 1:
-                counter = n_solutions - 1
             solution = [x for x in range(1, self.n_nodes+1) if model[x-1] > 0]
             all_solutions.append(solution)
             formula.add_clause(list(map(lambda x: -x, model)), wcnf.TOP_WEIGHT)
@@ -188,6 +187,7 @@ class Graph(object):
         solution = {}
         matrix = []
         neighbors = {}
+        counter = 0
 
         for i in range(1, self.n_nodes + 1): #Starting the counter for each vertex
             neighbors[i] = 0
@@ -225,12 +225,11 @@ class Graph(object):
 
         #hard(3): A boolean is true if and only if the color is set
         for row in matrix[:-1]:
-            for i in range(len(row)):
-                formula.add_clause([matrix[-1][i], -row[i]], wcnf.TOP_WEIGHT)
+            for i, item in enumerate(row):
+                formula.add_clause([matrix[-1][i], -item], wcnf.TOP_WEIGHT)
 
         opt, model = solver.solve(formula)
         curr_opt = opt
-        counter = 0
 
         if opt <= 0: return []
 
